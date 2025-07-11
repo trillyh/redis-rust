@@ -1,33 +1,51 @@
-#![allow(unused_imports)]
-use std::{io::Write, io::Read, net::TcpListener, net::TcpStream};
+use tokio::{
+    io::{AsyncReadExt, AsyncWriteExt}, 
+    net::{TcpListener, TcpStream}
+};
+//use mini_redis::{Connection, Frame};
 
-fn main() {
-    // You can use print statements as follows for debugging, they'll be visible when running tests.
+#[tokio::main]
+async fn main() {
     println!("Logs from your program will appear here!");
-
-    // Uncomment this block to pass the first stage
+  
+    let listener = TcpListener::bind("127.0.0.1:6379").await.unwrap();
     
-    let listener = TcpListener::bind("127.0.0.1:6379").unwrap();
-    
-    for stream in listener.incoming() {
-        match stream {
-            Ok(mut stream) => {
-                println!("accepted new connection");
-
-                let mut buf = [0; 512];
-                
-                loop {
-                    let bytes_read = stream.read(&mut buf).unwrap();
-
-                    if bytes_read == 0 {
-                        return;
-                    }
-                    stream.write_all(b"+PONG\r\n").unwrap();
-                }
-            }
+    loop {
+        match listener.accept().await {
+            Ok((socket, _addr)) => {
+                println!("Accepting new connection)");
+                let handle = tokio::spawn(async move {
+                    process(socket).await;
+                });
+            } 
             Err(e) => {
-                println!("error: {}", e);
+                println!("Failed to accept new socket: error {:?}", e)
             }
+        }
+    }
+}
+
+async fn process(mut socket: TcpStream) {
+    let mut buf = [0; 512];
+    
+    loop {
+        let _bytes_read= match socket.read(&mut buf).await {
+            
+            Ok(0) => {
+                println!("client closed connection");
+                break;
+            }
+            Ok(n) => n,
+            Err(e) => {
+                println!("Failed to read from socket; err = {:?}", e);
+                break;
+            }
+        };
+
+        // Doc why I would not want to panic! with expect() or unwrap() here.
+        if let Err(e) = socket.write_all(b"+PONG\r\n").await {
+            println!("Failed to write to socket; err = {:?}", e);
+            break;
         }
     }
 }
