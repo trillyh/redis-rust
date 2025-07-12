@@ -25,9 +25,10 @@ async fn main() {
     }
 }
 
+// Process any incoming connections
 async fn process(mut socket: TcpStream) {
     let mut buf = [0; 512];
-    
+
     loop {
         let _bytes_read= match socket.read(&mut buf).await {
             
