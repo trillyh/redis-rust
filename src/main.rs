@@ -8,7 +8,7 @@ use tokio::{
 async fn main() {
     println!("Logs from your program will appear here!");
   
-    let listener = TcpListener::bind("127.0.0.1:6379").await.unwrap();
+    let listener = TcpListener::bind("127.0.0.1:6379").await.expect("Failed to create listener");
     
     loop {
         match listener.accept().await {
